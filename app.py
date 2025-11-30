@@ -3,12 +3,17 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-# 设置 Matplotlib 支持中文和简洁风格
-matplotlib.rcParams['font.sans-serif'] = ['SimHei']
+# --- 关键优化：Matplotlib 中文字体设置 ---
+
+# 1. 强制使用 'WenQuanYi Zen Hei' (文泉驿正黑)
+#    这是通过 packages.txt 安装成功的字体在系统中的名称
+matplotlib.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei', 'sans-serif']
+
+# 2. 解决 Matplotlib 显示负号 '-' 时的方块问题
 matplotlib.rcParams['axes.unicode_minus'] = False
 plt.style.use('seaborn-v0_8-whitegrid')
 
-# --- 1. 核心数学模型函数 (保持不变) ---
+# --- 核心数学模型函数 (保持不变) ---
 
 def generate_confession_times(mode, n=50):
     i_series = np.array(range(1, n + 1))
@@ -47,19 +52,17 @@ def stability_analysis(t, A_val, t0, sigma, delta=0.01):
 
 def determine_mode(delay_choice, change_choice):
     if delay_choice == 1 and change_choice == 1:
-        return "mo_ceng"
+        return "mo_ceng (拖延)"
     elif delay_choice == 2 or change_choice == 2:
-        return "sao_dong"
+        return "sao_dong (冲动)"
     else:
-        return "random"
+        return "random (随机)"
 
-# --- 2. 辅助函数：评分与分类 ---
+# --- 辅助函数：评分与分类 ---
 
 def calculate_score(raw_scores):
-    # Streamlit 传入的已经是数值，不再需要复杂的字符串解析
     total_score = sum(raw_scores)
-    
-    # 映射公式: 总分 3-15 -> 1-10 (保持原逻辑)
+    # 评分范围 3-15 映射到 1-10
     final_score = 1 + ((total_score - 3) / (15 - 3)) * (10 - 1)
     return np.clip(round(final_score), 1, 10) 
 
@@ -85,7 +88,7 @@ def classify_love_type(I, P, C, threshold=7):
     else:
         return "非爱 (Non-love)", "非爱：三要素均不满足，需从零开始。"
 
-# --- 3. 可视化函数 (适应 Streamlit) ---
+# --- 可视化函数 (适应 Streamlit) ---
 
 @st.cache_data
 def plot_love_triangle(I, P, C):
@@ -151,7 +154,7 @@ def plot_success_curve(A, t_peak, sigma, current_time):
     
     return fig
 
-# --- 4. Streamlit 主程序 ---
+# --- Streamlit 主程序 ---
 
 def run_analysis(data):
     # 提取数据
@@ -182,11 +185,11 @@ def run_analysis(data):
     t_peak = np.clip(t_peak, 0.01, None) 
 
     # 4. 计算预测时刻 t
-    times = generate_confession_times(mode)
+    times = generate_confession_times(mode.split(' ')[0]) # 使用模式的英文部分
     brave = is_brave(times)
     mean_times_last = np.mean(times[-10:])
     
-    if mode == "random":
+    if mode.startswith("random"):
         current_time_mapped = t_peak + (mean_times_last - np.mean(times)) * (sigma / 4)
     else:
         current_time_mapped = t_peak + (mean_times_last - 1) * (sigma / 2)
